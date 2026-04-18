@@ -10,7 +10,22 @@ import {
   Check
 } from 'lucide-react';
 
-const apiKey = ""; // AIzaSyAPhvbsMqwSGdZKrniWzbAe6T65yxJ6KyA
+/**
+ * מפתח ה-API לשימוש באפליקציה.
+ * הגישה למשתני סביבה הותאמה כדי למנוע שגיאות קומפילציה בסביבות שונות.
+ */
+const getApiKey = () => {
+  const fallbackKey = "AIzaSyAPhvbsMqwSGdZKrniWzbAe6T65yxJ6KyA";
+  try {
+    // ניסיון גישה למשתנה סביבה של Vite במידה וקיים
+    const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+    return envKey || fallbackKey;
+  } catch (e) {
+    return fallbackKey;
+  }
+};
+
+const apiKey = getApiKey();
 
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
@@ -21,7 +36,7 @@ const fileToBase64 = (file) => {
   });
 };
 
-// רקע חלקיקים חגיגי ויוקרתי
+// רקע חלקיקים חגיגי
 const ParticleBackground = () => {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 opacity-40">
@@ -40,43 +55,17 @@ const ParticleBackground = () => {
         />
       ))}
       <style>{`
-        .particle {
-          position: absolute;
-          background: white;
-          border-radius: 50%;
-          box-shadow: 0 0 8px white;
-          animation: float infinite linear;
-        }
-        @keyframes float {
-          0% { transform: translateY(0) scale(1); opacity: 0; }
-          50% { opacity: 0.6; }
-          100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
-        }
-        .shimmer {
-          position: relative;
-          overflow: hidden;
-        }
-        .shimmer::after {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -60%;
-          width: 20%;
-          height: 200%;
-          background: rgba(255, 255, 255, 0.2);
-          transform: rotate(30deg);
-          animation: shimmerEffect 3s infinite;
-        }
-        @keyframes shimmerEffect {
-          0% { left: -60%; }
-          100% { left: 140%; }
-        }
+        .particle { position: absolute; background: white; border-radius: 50%; box-shadow: 0 0 8px white; animation: float infinite linear; }
+        @keyframes float { 0% { transform: translateY(0) scale(1); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-100vh) scale(0.5); opacity: 0; } }
+        .shimmer { position: relative; overflow: hidden; }
+        .shimmer::after { content: ''; position: absolute; top: -50%; left: -60%; width: 20%; height: 200%; background: rgba(255, 255, 255, 0.2); transform: rotate(30deg); animation: shimmerEffect 3s infinite; }
+        @keyframes shimmerEffect { 0% { left: -60%; } 100% { left: 140%; } }
       `}</style>
     </div>
   );
 };
 
-// אנימציית זיקוקים לשלב הטעינה
+// זיקוקים לשלב הטעינה
 const Fireworks = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -93,18 +82,8 @@ const Fireworks = () => {
         />
       ))}
       <style>{`
-        .firework {
-          position: absolute;
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          animation: explode 2s infinite ease-out;
-        }
-        @keyframes explode {
-          0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 var(--color); }
-          50% { opacity: 1; }
-          100% { transform: scale(25); opacity: 0; box-shadow: -10px -10px 0 0 var(--color), 10px -10px 0 0 var(--color), 10px 10px 0 0 var(--color), -10px 10px 0 0 var(--color), 0 -15px 0 0 var(--color), 0 15px 0 0 var(--color); }
-        }
+        .firework { position: absolute; width: 4px; height: 4px; border-radius: 50%; animation: explode 2s infinite ease-out; }
+        @keyframes explode { 0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 var(--color); } 50% { opacity: 1; } 100% { transform: scale(25); opacity: 0; box-shadow: -10px -10px 0 0 var(--color), 10px -10px 0 0 var(--color), 10px 10px 0 0 var(--color), -10px 10px 0 0 var(--color), 0 -15px 0 0 var(--color), 0 15px 0 0 var(--color); } }
       `}</style>
     </div>
   );
@@ -125,7 +104,6 @@ const App = () => {
   const canvasRef = useRef(null);
 
   const generateTorchImage = async (base64Image, mimeType, retryCount = 0) => {
-    // הפרומפט הסופי: דגל ישראל ו-78 על הפודיום
     const baseTemplateDescription = `
       SCENE CONTEXT: Official Israeli Independence Day Torch Lighting Ceremony (Har Herzl style).
       STATIONARY ELEMENTS: 
@@ -133,7 +111,7 @@ const App = () => {
       - On the front face of the podium, there is a clear illustration of the Israeli flag (Star of David and two stripes).
       - Directly below the flag, the number '78' is visible in a formal blue font.
       - Background is dark blue with multiple curved glowing white neon light lines.
-      - Two IDF soldiers stand at the sides in full ceremonial olive-green uniforms, red berets, and blue-white sashes.
+      - Two IDF soldiers stand at the sides in full ceremonial olive-green uniforms.
       TASK: 
       - Replace the central person in this specific scene with the person from the uploaded photo.
       - The person should be integrated naturally, holding the ceremonial torch, wearing a professional dark blazer.
@@ -146,7 +124,6 @@ const App = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{
-            role: "user",
             parts: [
               { text: baseTemplateDescription },
               { inlineData: { mimeType: mimeType, data: base64Image } }
@@ -158,14 +135,21 @@ const App = () => {
         })
       });
 
-      if (!response.ok) throw new Error('SERVER_BUSY');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("API Error Details:", errorData);
+        if (response.status === 403) throw new Error('API_KEY_INVALID');
+        if (response.status === 429) throw new Error('RATE_LIMIT');
+        throw new Error('SERVER_BUSY');
+      }
+
       const result = await response.json();
       const base64Data = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
       if (base64Data) return `data:image/png;base64,${base64Data}`;
       throw new Error('NO_DATA');
     } catch (err) {
-      if (retryCount < 5) {
-        const delays = [1000, 2000, 4000, 8000, 16000];
+      if (retryCount < 3 && err.message !== 'API_KEY_INVALID') {
+        const delays = [1000, 2000, 4000];
         await new Promise(res => setTimeout(res, delays[retryCount]));
         return generateTorchImage(base64Image, mimeType, retryCount + 1);
       }
@@ -191,7 +175,11 @@ const App = () => {
       const imageUrl = await generateTorchImage(formData.imageBase64, formData.mimeType);
       setGeneratedImageUrl(imageUrl);
     } catch (err) {
-      setError('חלה שגיאה בתהליך. נסו שוב.');
+      console.error("Caught Error:", err);
+      let msg = 'חלה שגיאה בתהליך היצירה. נסו שוב.';
+      if (err.message === 'API_KEY_INVALID') msg = 'מפתח ה-API אינו תקין או חסר הרשאות.';
+      if (err.message === 'RATE_LIMIT') msg = 'חרגת מכמות הבקשות המותרת, נסו שוב בעוד דקה.';
+      setError(msg);
       setStep('form');
     }
   };
@@ -208,20 +196,9 @@ const App = () => {
         canvas.width = 1080;
         canvas.height = 1920;
 
-        const imgRatio = img.width / img.height;
-        const targetRatio = 1080 / 1920;
-        let sX, sY, sW, sH;
-        if (imgRatio > targetRatio) {
-          sH = img.height; sW = img.height * targetRatio;
-          sX = (img.width - sW) / 2; sY = 0;
-        } else {
-          sW = img.width; sH = img.width / targetRatio;
-          sX = 0; sY = (img.height - sH) / 2;
-        }
+        ctx.drawImage(img, 0, 0, 1080, 1920);
 
-        ctx.drawImage(img, sX, sY, sW, sH, 0, 0, 1080, 1920);
-
-        // גרדיאנט עליון לטקסט (כדי לא להסתיר את הפודיום למטה)
+        // גרדיאנט עליון לטקסט
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.45);
         gradient.addColorStop(0, 'rgba(0, 5, 30, 0.98)');
         gradient.addColorStop(0.35, 'rgba(0, 10, 50, 0.85)');
@@ -235,11 +212,9 @@ const App = () => {
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
         ctx.shadowBlur = 12;
         
-        // שורה 1: אני, [שם], משיא/ה משואה זו
         ctx.font = 'bold 70px sans-serif';
         ctx.fillText(`אני, ${formData.name}, משיא/ה משואה זו`, canvas.width / 2, 170);
 
-        // שורה 2: טקסט המשתמש
         ctx.font = '44px sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
         ctx.shadowBlur = 0;
@@ -254,7 +229,6 @@ const App = () => {
         }
         ctx.fillText(line, canvas.width / 2, y);
 
-        // שורה 3: ולתפארת מדינת ישראל (מוגדל, ללא ניקוד)
         ctx.font = 'bold 62px sans-serif';
         ctx.fillStyle = '#60a5fa'; 
         ctx.fillText("ולתפארת מדינת ישראל", canvas.width / 2, y + 120);
@@ -267,9 +241,7 @@ const App = () => {
 
   const handleShare = async () => {
     const siteUrl = window.location.href;
-    const shareText = `הדלקתי משואה ליום העצמאות. 
-גם לך מגיע. לכולם מגיע! 
-רוצה? כל הפרטים בקישור >> ${siteUrl}`;
+    const shareText = `הדלקתי משואה ליום העצמאות. גם לך מגיע! כל הפרטים בקישור >> ${siteUrl}`;
 
     try {
       if (navigator.share && navigator.canShare) {
@@ -283,7 +255,6 @@ const App = () => {
         }
       }
     } catch (e) { console.log('Share error:', e); }
-    // Fallback לוואטסאפ במקרה של חוסר תמיכה בקבצים
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
@@ -295,7 +266,7 @@ const App = () => {
         <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_bottom_left,_#1e1b4b_0%,_transparent_70%)]"></div>
       </div>
 
-      <main className="relative z-10 w-full max-w-md h-full flex flex-col px-6 py-4 mx-auto">
+      <main className="relative z-10 w-full max-w-md h-full flex flex-col px-6 py-4 mx-auto no-scrollbar overflow-y-auto">
         
         {step === 'opening' && (
           <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-700">
@@ -323,20 +294,19 @@ const App = () => {
               <ChevronLeft size={20} className="rotate-180" /> <span>חזרה</span>
             </button>
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1">
-                <label className="block text-base font-bold text-blue-300 mr-1">המשואה של</label>
+              <div>
+                <label className="block text-base font-bold text-blue-300 mb-2">המשואה של</label>
                 <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 focus:ring-1 focus:ring-blue-500 outline-none text-lg placeholder:text-white/20" placeholder="שמך המלא" required />
               </div>
-              <div className="space-y-1">
-                <label className="block text-base font-bold text-blue-300 mr-1">למה מגיע לך להשיא משואה?</label>
-                <textarea rows="2" maxLength="120" value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 focus:ring-1 focus:ring-blue-500 outline-none resize-none text-lg placeholder:text-white/20" placeholder="כי לא ישנתי 3 שנים, כי עשיתי מילואים..." required />
+              <div>
+                <label className="block text-base font-bold text-blue-300 mb-2">למה מגיע לך להשיא משואה?</label>
+                <textarea rows="2" maxLength="120" value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 focus:ring-1 focus:ring-blue-500 outline-none resize-none text-lg placeholder:text-white/20" placeholder="כי לא ישנתי 3 שנים..." required />
               </div>
-              <div className="space-y-1">
-                <label className="block text-base font-bold text-blue-300 mr-1">צילום פנים וגוף ברור (אנכי)</label>
+              <div>
+                <label className="block text-base font-bold text-blue-300 mb-2">צילום פנים וגוף ברור (אנכי)</label>
                 <label className="flex flex-col items-center justify-center w-full h-36 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:bg-white/10 transition-all overflow-hidden relative group">
                   {formData.image ? (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <img src={URL.createObjectURL(formData.image)} className="w-full h-full object-cover opacity-40" alt="preview" />
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-blue-900/40 backdrop-blur-sm">
                         <Check size={40} className="text-blue-400 mb-1" /> <span className="text-sm font-bold uppercase text-white tracking-widest">התמונה נבחרה</span>
                       </div>
@@ -349,7 +319,7 @@ const App = () => {
                   <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
                 </label>
               </div>
-              {error && <div className="text-red-400 text-xs text-center bg-red-950/20 p-2 rounded-xl border border-red-900/30">{error}</div>}
+              {error && <div className="text-red-400 text-xs text-center bg-red-950/20 p-3 rounded-xl border border-red-900/30 leading-relaxed shadow-lg">{error}</div>}
               <button type="submit" disabled={!formData.name || !formData.reason || !formData.image} className="shimmer w-full py-5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 rounded-2xl text-xl font-bold shadow-xl flex items-center justify-center gap-4 transition-all">
                 יצירת תמונת המשואה שלי <Send size={22} />
               </button>
@@ -367,9 +337,8 @@ const App = () => {
                   <Flame className="text-blue-400 animate-pulse" size={50} />
                 </div>
               </div>
-              <h2 className="text-5xl font-black mb-6 drop-shadow-lg">תעלה המשואה!</h2>
-              <p className="text-xl text-blue-100/70 mb-2">עוד רגע המשואה שלך תדלק</p>
-              <p className="text-2xl text-blue-100 font-bold uppercase tracking-tight">כל הכבוד, גאים בך!</p>
+              <h2 className="text-5xl font-black mb-6 drop-shadow-lg text-white">תעלה המשואה!</h2>
+              <p className="text-xl text-blue-100 font-bold uppercase tracking-tight">כל הכבוד, גאים בך!</p>
             </div>
           </div>
         )}
@@ -387,14 +356,14 @@ const App = () => {
                 )}
              </div>
              <div className="grid grid-cols-2 gap-3 mb-3">
-                <button onClick={() => { const link = document.createElement('a'); link.download = `Mishua_${formData.name}.png`; link.href = finalCompositeUrl; link.click(); }} className="bg-white text-blue-950 py-4 rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-blue-50 active:scale-95">
+                <button onClick={() => { const link = document.createElement('a'); link.download = `Mishua_${formData.name}.png`; link.href = finalCompositeUrl; link.click(); }} className="bg-white text-blue-950 py-4 rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-blue-50 active:scale-95 shadow-lg">
                   <Download size={20} /> שמירה
                 </button>
                 <button onClick={handleShare} className="bg-[#25D366] py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-white active:scale-95 shadow-lg">
                   <Share2 size={20} /> שיתוף
                 </button>
              </div>
-             <button onClick={() => { setStep('form'); setGeneratedImageUrl(null); setFinalCompositeUrl(null); }} className="w-full py-4 bg-white/5 border border-white/10 rounded-xl text-blue-200 flex items-center justify-center gap-2 active:scale-95 mb-2">
+             <button onClick={() => { setStep('form'); setGeneratedImageUrl(null); setFinalCompositeUrl(null); }} className="w-full py-4 bg-white/5 border border-white/10 rounded-xl text-blue-200 flex items-center justify-center gap-2 active:scale-95 mb-2 transition-all">
                <RefreshCw size={18} /> יצירה מחדש
              </button>
           </div>
